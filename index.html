@@ -319,10 +319,17 @@
           Show 95% CI ribbon
         </label>
 
+        <label style="display:flex;align-items:center;gap:8px; margin-top:6px;" id="diffLabel1">
+          <input type="checkbox" id="diff1" disabled />
+          Show difference between the two groups
+        </label>
+        <div id="diffHint1" class="small" style="color:#888; margin-top:2px;">Select two demographic groups (sex, age, or income) of the same diagnosis and outcome to compare.</div>
+
       </div>
 
       <div class="card">
         <div id="chart"></div>
+        <div id="chartDiff" style="display:none;"></div>
         <div class="small">Lines = all combos of selected diagnoses × sex × age × income (up to 16). Hover over the lines to see estimate, confidence interval, p-value, CI, and the number of diagnosed individuals in the sex-age-income group underlying the estimates in the Jan 2013 - Sep 2017 period (n).  </div>
       </div>
     </div>
@@ -1237,6 +1244,7 @@
     if (!diseases.length || !sexes.length || !ages.length || !incomes.length) {
       Plotly.newPlot("chart", [], { title: "Select at least 1 disease, sex, age, and income" }, {responsive:true});
       $("lineInfo").textContent = "";
+      updateDiffEligibility(false);
       return;
     }
 
@@ -1306,6 +1314,7 @@ traces.push({
     if (!traces.length) {
       Plotly.newPlot("chart", [], { title: "No data for selected combinations" }, {responsive:true});
       setStatus1(`Loaded ${rows.length.toLocaleString()} rows. No matching series.`);
+      updateDiffEligibility(false);
       return;
     }
 
@@ -1318,6 +1327,141 @@ traces.push({
     }, {responsive: true});
 
     setStatus1(`Loaded ${rows.length.toLocaleString()} rows.`);
+
+    // ----- Difference feature -----
+    // Eligible iff exactly 2 combos of the SAME disease (and same outcome, which is
+    // single-select), i.e. one disease selected and exactly one demographic dimension
+    // has two values (the two groups are disjoint samples -> independent).
+    const eligible =
+      combos.length === 2 &&
+      found === 2 &&
+      diseases.length === 1 &&
+      ((sexes.length === 2 ? 1 : 0) + (ages.length === 2 ? 1 : 0) + (incomes.length === 2 ? 1 : 0)) === 1;
+
+    updateDiffEligibility(eligible);
+
+    const diffOn = eligible && $("diff1") && $("diff1").checked;
+    if (diffOn) {
+      renderDiffChart(base, combos, outcome);
+    } else {
+      const cd = $("chartDiff");
+      if (cd) { cd.style.display = "none"; Plotly.purge(cd); }
+    }
+  }
+
+  function updateDiffEligibility(eligible) {
+    const cb = $("diff1");
+    const hint = $("diffHint1");
+    if (!cb) return;
+    cb.disabled = !eligible;
+    if (!eligible) {
+      cb.checked = false;
+      if (hint) hint.style.display = "";
+      const cd = $("chartDiff");
+      if (cd) { cd.style.display = "none"; Plotly.purge(cd); }
+    } else {
+      if (hint) hint.style.display = "none";
+    }
+  }
+
+  function renderDiffChart(base, combos, outcome) {
+    // combos: [[did, sex, age, income], [did, sex, age, income]] — same disease, one dim differs
+    const [c1, c2] = combos;
+
+    const getSeries = ([did, sex, age, income]) =>
+      base.filter(r => r.disease_id === did && r.sex === sex && r.age_group === age && r.income === income)
+          .sort((a,b) => a.rel_year - b.rel_year);
+
+    const s1 = getSeries(c1);
+    const s2 = getSeries(c2);
+
+    // Match on rel_year (only years present in both)
+    const byYear2 = new Map(s2.map(r => [r.rel_year, r]));
+    const matched = s1.filter(r => byYear2.has(r.rel_year));
+
+    const cd = $("chartDiff");
+    if (!matched.length) {
+      if (cd) { cd.style.display = "none"; Plotly.purge(cd); }
+      return;
+    }
+
+    const Z95 = 1.959963985;
+    const label = (c) => `${c[1]} | ${c[2]} | ${c[3]}`;
+
+    const xs = [], diffs = [], los = [], his = [], hover = [], sig = [];
+    for (const r1 of matched) {
+      const r2 = byYear2.get(r1.rel_year);
+      const est1 = Number(r1.estimate), est2 = Number(r2.estimate);
+      // SEs recovered from 95% CIs
+      const se1 = (Number(r1.ci_high) - Number(r1.ci_low)) / (2 * Z95);
+      const se2 = (Number(r2.ci_high) - Number(r2.ci_low)) / (2 * Z95);
+      // Independent samples (disjoint groups of individuals): SE of difference
+      const seD = Math.sqrt(se1 * se1 + se2 * se2);
+      const d = est1 - est2;
+      const z = seD > 0 ? d / seD : 0;
+      // two-sided p-value from normal approximation
+      const p = 2 * (1 - normCdf(Math.abs(z)));
+      const isSig = p < 0.05;
+
+      xs.push(r1.rel_year);
+      diffs.push(d);
+      los.push(d - Z95 * seD);
+      his.push(d + Z95 * seD);
+      sig.push(isSig);
+      hover.push(
+        `Year: ${r1.rel_year}<br>` +
+        `Difference: ${toFixed3(d)}<br>` +
+        `95% CI: [${toFixed3(d - Z95 * seD)}, ${toFixed3(d + Z95 * seD)}]<br>` +
+        `z: ${toFixed3(z)}, p: ${exp2(p)}<br>` +
+        (isSig ? `<b>Significant at 5%</b>` : `Not significant at 5%`)
+      );
+    }
+
+    const diffTraces = [
+      // CI ribbon
+      {
+        type: "scatter", mode: "lines",
+        x: xs, y: his,
+        line: { width: 0 }, hoverinfo: "skip", showlegend: false
+      },
+      {
+        type: "scatter", mode: "lines",
+        x: xs, y: los,
+        line: { width: 0 }, fill: "tonexty", fillcolor: "rgba(0,0,0,0.10)",
+        hoverinfo: "skip", showlegend: false
+      },
+      // Difference line, significant years as filled markers, others hollow
+      {
+        type: "scatter", mode: "lines+markers",
+        name: "Difference",
+        x: xs, y: diffs,
+        text: hover, hoverinfo: "text",
+        line: { color: "#b33" },
+        marker: {
+          size: 8,
+          color: sig.map(s => s ? "#b33" : "#fff"),
+          line: { color: "#b33", width: 1.5 }
+        },
+        showlegend: false
+      }
+    ];
+
+    cd.style.display = "";
+    Plotly.newPlot(cd, diffTraces, {
+      title: `Difference: (${label(c1)}) − (${label(c2)})`,
+      xaxis: { title: "Years relative to diagnosis", dtick: 1 },
+      yaxis: { title: "Difference in estimates", zeroline: true },
+      margin: {l: 60, r: 20, t: 55, b: 55},
+      height: 300
+    }, {responsive: true});
+  }
+
+  // Standard normal CDF (Abramowitz & Stegun approximation)
+  function normCdf(x) {
+    const t = 1 / (1 + 0.2316419 * Math.abs(x));
+    const d = 0.3989422804014327 * Math.exp(-x * x / 2);
+    let p = d * t * (0.319381530 + t * (-0.356563782 + t * (1.781477937 + t * (-1.821255978 + t * 1.330274429))));
+    return x >= 0 ? 1 - p : p;
   }
 
   // ---------- Tab 2: ranking ----------
@@ -1963,6 +2107,7 @@ list.sort((a,b) => sort === "asc" ? (score(a) - score(b)) : (score(b) - score(a)
       });
       $("outcome1").addEventListener("change", () => { updateExplorerAvailability(); renderExplorer(); });
       if ($("ci1")) $("ci1").addEventListener("change", renderExplorer);
+      if ($("diff1")) $("diff1").addEventListener("change", renderExplorer);
 
       // disease meta/hierarchy from diagnosis_groups.csv (also used by Diagnoses tab)
       const respD = await fetch("./diagnosis_groups.csv?cb=1");
