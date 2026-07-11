@@ -215,7 +215,7 @@
             <td style="padding:5px 0; color:#4a5568;">Years since diagnosis (Dx−1, Dx+0, Dx+1, …)</td>
           </tr>
         </table>
-        <p class="small" style="margin:10px 0 0 0; color:#718096;">Not all sex–age–income combinations are available for every outcome. For example, labor participation is not estimated for ages 65+; nursing home use is only available for ages 65+. Some estimates use aggregated groups (e.g., sex–age only, or full population).</p>
+        <p class="small" style="margin:10px 0 0 0; color:#718096;">Not all sex–age–income combinations are available for every outcome. For example, employment is not estimated for ages 65+; nursing home use is only available for ages 65+. Some estimates use aggregated groups (e.g., sex–age only, or full population).</p>
       </div>
 
       <!-- Outcomes -->
@@ -231,19 +231,19 @@
             <td style="padding:5px 0; color:#4a5568;">Cumulative death indicator (1 if died in or before given year)</td>
           </tr>
           <tr style="border-bottom:1px solid #eee;">
-            <td style="padding:5px 10px 5px 0; font-weight:600; white-space:nowrap;">Physical limitations</td>
+            <td style="padding:5px 10px 5px 0; font-weight:600; white-space:nowrap;">Physical health limitations</td>
             <td style="padding:5px 0; color:#4a5568;">Age-standardized index (1 SD = 1 unit); mapped from medicine use &amp; expenditure to OECD functional limitation items</td>
           </tr>
           <tr style="border-bottom:1px solid #eee;">
-            <td style="padding:5px 10px 5px 0; font-weight:600; white-space:nowrap;">Mental limitations</td>
+            <td style="padding:5px 10px 5px 0; font-weight:600; white-space:nowrap;">Mental health limitations</td>
             <td style="padding:5px 0; color:#4a5568;">Age-standardized index (1 SD = 1 unit); mapped to Kessler K10 distress scale items</td>
           </tr>
           <tr style="border-bottom:1px solid #eee;">
-            <td style="padding:5px 10px 5px 0; font-weight:600; white-space:nowrap;">Labor participation</td>
+            <td style="padding:5px 10px 5px 0; font-weight:600; white-space:nowrap;">Employment</td>
             <td style="padding:5px 0; color:#4a5568;">1 if main income source is employment earnings</td>
           </tr>
           <tr style="border-bottom:1px solid #eee;">
-            <td style="padding:5px 10px 5px 0; font-weight:600; white-space:nowrap;">Log labor earnings</td>
+            <td style="padding:5px 10px 5px 0; font-weight:600; white-space:nowrap;">Log employee earnings</td>
             <td style="padding:5px 0; color:#4a5568;">Log of annual gross employment earnings (€)</td>
           </tr>
           <tr style="border-bottom:1px solid #eee;">
@@ -599,20 +599,20 @@
   const OUTCOME_CODE_TO_LABEL = {
     83: "Nursing home use",
     80: "Medical expenses",
-    78: "Labor participation",
+    78: "Employment",
     81: "Full disability",
     82: "Mortality",
     991: "Physical health limitations",
     992: "Mental health limitations",
-    79: "Log labor earnings"
+    79: "Log employee earnings"
   };
   const OUTCOME_LABELS_ORDERED = [
     "Medical expenses",
     "Mortality",
     "Physical health limitations",
     "Mental health limitations",
-    "Labor participation",
-    "Log labor earnings",
+    "Employment",
+    "Log employee earnings",
     "Full disability",
     "Nursing home use"
   ];
