@@ -589,7 +589,7 @@
   </div>
 
   <script>
-  // Expected effects_v10.csv columns:
+  // Expected effects.csv columns:
   // disease_id, outcome, income, sex, age_group, rel_year, estimate, ci_low, ci_high, p_value, n
   // (disease names/groups are loaded from diagnosis_groups.csv)
   //
@@ -2056,8 +2056,8 @@ list.sort((a,b) => sort === "asc" ? (score(a) - score(b)) : (score(b) - score(a)
 
   async function loadData() {
     try {
-      const resp = await fetch("./effects_v10.csv?cb=1");
-      if (!resp.ok) throw new Error(`HTTP ${resp.status} (effects_v10.csv)`);
+      const resp = await fetch("./effects.csv?cb=1");
+      if (!resp.ok) throw new Error(`HTTP ${resp.status} (effects.csv)`);
       const text = await resp.text();
 
       const parsed = Papa.parse(text, { header: true, dynamicTyping: true, skipEmptyLines: true });
@@ -2082,9 +2082,9 @@ list.sort((a,b) => sort === "asc" ? (score(a) - score(b)) : (score(b) - score(a)
       const needed = ["disease_id","outcome","income","sex","age_group","rel_year","estimate","ci_low","ci_high","p_value","n"];
       const missing = needed.filter(k => !(k in (rows[0] || {})));
       if (missing.length) {
-        setStatus1("effects_v10.csv missing columns: " + missing.join(", "));
-        setStatus2("effects_v10.csv missing columns: " + missing.join(", "));
-        setStatus3("effects_v10.csv missing columns: " + missing.join(", "));
+        setStatus1("effects.csv missing columns: " + missing.join(", "));
+        setStatus2("effects.csv missing columns: " + missing.join(", "));
+        setStatus3("effects.csv missing columns: " + missing.join(", "));
         Plotly.newPlot("chart", [], { title: "Fix CSV schema (missing columns)" }, {responsive:true});
         Plotly.newPlot("graph3", [], { title: "Fix CSV schema (missing columns)" }, {responsive:true});
         return;
@@ -2323,10 +2323,10 @@ list.sort((a,b) => sort === "asc" ? (score(a) - score(b)) : (score(b) - score(a)
       loadDiagnoses();
     } catch (e) {
       console.error(e);
-      setStatus1("Failed to load files. Use GitHub Pages URL and ensure effects_v10.csv + disease_links.csv exist.");
-      setStatus2("Failed to load files. Use GitHub Pages URL and ensure effects_v10.csv + disease_links.csv exist.");
-      setStatus3("Failed to load files. Use GitHub Pages URL and ensure effects_v10.csv + disease_links.csv exist.");
-      setStatus4("Failed to load files. Use GitHub Pages URL and ensure effects_v10.csv + disease_links.csv exist.");
+      setStatus1("Failed to load files. Use GitHub Pages URL and ensure effects.csv + disease_links.csv exist.");
+      setStatus2("Failed to load files. Use GitHub Pages URL and ensure effects.csv + disease_links.csv exist.");
+      setStatus3("Failed to load files. Use GitHub Pages URL and ensure effects.csv + disease_links.csv exist.");
+      setStatus4("Failed to load files. Use GitHub Pages URL and ensure effects.csv + disease_links.csv exist.");
       Plotly.newPlot("chart", [], { title: "Data load failed" }, {responsive:true});
       Plotly.newPlot("scatter4", [], { title: "Data load failed" }, {responsive:true});
       Plotly.newPlot("graph3", [], { title: "Data load failed" }, {responsive:true});
